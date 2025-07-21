@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Echoes of the Cabin</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    font-family: Georgia, serif;
+    background: #2b2b2b;
+    color: #eee;
+  }
+  #homeScreen, #gameScreen {
+    width: 100vw; height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; align-items: center;
+    background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1050&q=80') no-repeat center/cover;
+  }
+  #homeScreen {
+    background-color: rgba(0,0,0,0.7);
+  }
+  #homeScreen h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 8px black;
+  }
+  #startBtn {
+    font-size: 1.8rem;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 12px;
+    background: #a67c00;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 0 10px #a67c00;
+    transition: background 0.3s ease;
+  }
+  #startBtn:hover {
+    background: #d1b000;
+  }
+  #gameScreen {
+    display: none;
+    flex-direction: column;
+    background: #1c1c1c;
+  }
+  #header {
+    background: #3b3b3b;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+  }
+  #locationTitle {
+    font-weight: bold;
+  }
+  #inventory {
+    background: #2f2f2f;
+    padding: 10px;
+    min-height: 50px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+  }
+  .invItem {
+    background: #555;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+  }
+  .invItem:hover {
+    background: #a67c00;
+    color: black;
+  }
+  #scene {
+    flex-grow: 1;
+    position: relative;
+    background-color: #262626;
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
+  }
+  #description {
+    background: #333;
+    padding: 15px;
+    font-size: 1rem;
+    height: 130px;
+    overflow-y: auto;
+    box-shadow: inset 0 0 10px #000;
+  }
+  .hotspot {
+    position: absolute;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 6px 3px rgba(166,124,0,0);
+    transition: box-shadow 0.3s ease;
+  }
+  .hotspot:hover {
+    box-shadow: 0 0 6px 3px rgba(166,124,0,0.8);
+  }
+  /* Hotspot sizes and positions for each scene */
+  /* Living Room */
+  #lr_bookshelf { top: 28%; left: 12%; width: 140px; height: 250px; }
+  #lr_fireplace { top: 58%; left: 72%; width: 170px; height: 140px; }
+  #lr_rug { top: 78%; left: 48%; width: 180px; height: 110px; }
+
+  /* Bedroom */
+  #br_bed { top: 58%; left: 18%; width: 240px; height: 160px; }
+  #br_dresser { top: 42%; left: 70%; width: 160px; height: 190px; }
+  #br_window { top: 22%; left: 42%; width: 180px; height: 140px; }
+
+  /* Basement */
+  #bs_chest { top: 62%; left: 52%; width: 190px; height: 130px; }
+  #bs_shelf { top: 33%; left: 22%; width: 160px; height: 170px; }
+  #bs_crate { top: 72%; left: 18%; width: 140px; height: 110px; }
+
+  #navigation {
+    background: #3b3b3b;
+    padding: 10px;
+    text-align: center;
+  }
+  #navigation button {
+    background: #a67c00;
+    border: none;
+    padding: 10px 18px;
+    margin: 0 10px;
+    color: white;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 8px #a67c00;
+    transition: background 0.3s ease;
+  }
+  #navigation button:disabled {
+    background: #666;
+    cursor: default;
+    box-shadow: none;
+  }
+  #navigation button:hover:not(:disabled) {
+    background: #d1b000;
+  }
+</style>
+</head>
+<body>
+
+<div id="homeScreen">
+  <h1>Echoes of the Cabin</h1>
+  <button id="startBtn">Begin Your Search</button>
+</div>
+
+<div id="gameScreen">
+  <div id="header">
+    <div id="locationTitle">Loading...</div>
+    <div id="inventory"></div>
+  </div>
+  <div id="scene"></div>
+  <div id="description">Click objects to investigate the cabin and find clues.</div>
+  <div id="navigation">
+    <button id="toLivingRoom">Living Room</button>
+    <button id="toBedroom">Bedroom</button>
+    <button id="toBasement">Basement</button>
+  </div>
+</div>
+
+<script>
+  const homeScreen = document.getElementById("homeScreen");
+  const startBtn = document.getElementById("startBtn");
+  const gameScreen = document.getElementById("gameScreen");
+  const locationTitle = document.getElementById("locationTitle");
+  const scene = document.getElementById("scene");
+  const description = document.getElementById("description");
+  const inventoryDiv = document.getElementById("inventory");
+  const navLivingRoom = document.getElementById("toLivingRoom");
+  const navBedroom = document.getElementById("toBedroom");
+  const navBasement = document.getElementById("toBasement");
+
+  let inventory = [];
+  let currentLocation = "livingRoom";
+  let treasureFound = false;
+
+  // Realistic room photos from Unsplash
+  const scenes = {
+    livingRoom: {
+      bg: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1050&q=80",
+      hotspots: [
+        {id:"lr_bookshelf", name:"Bookshelf", description:"Rows of dusty books. One book seems newer than the rest." , onClick: bookshelfClick },
+        {id:"lr_fireplace", name:"Fireplace", description:"Cold and empty. The hearth is covered in ash." , onClick: fireplaceClick },
+        {id:"lr_rug", name:"Rug", description:"An old patterned rug. Something hard feels under it." , onClick: rugClick }
+      ]
+    },
+    bedroom: {
+      bg: "https://images.unsplash.com/photo-1477768663692-d2b59e017f42?auto=format&fit=crop&w=1050&q=80",
+      hotspots: [
+        {id:"br_bed", name:"Bed", description:"The bed looks untouched for years." , onClick: bedClick },
+        {id:"br_dresser", name:"Dresser", description:"An antique dresser with a locked drawer." , onClick: dresserClick },
+        {id:"br_window", name:"Window", description:"The window is cracked. You see the forest outside." , onClick: windowClick }
+      ]
+    },
+    basement: {
+      bg: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=1050&q=80",
+      hotspots: [
+        {id:"bs_chest", name:"Chest", description:"An old wooden chest. It looks fragile but locked." , onClick: chestClick },
+        {id:"bs_shelf", name:"Shelf", description:"Dusty jars and tools. Something shiny catches your eye." , onClick: shelfClick },
+        {id:"bs_crate", name:"Crate", description:"A crate filled with old fishing gear and some broken boxes." , onClick: crateClick }
+      ]
+    }
+  };
+
+  function showScene(location) {
+    currentLocation = location;
+    locationTitle.textContent = location[0].toUpperCase() + location.slice(1).replace(/([A-Z])/g, ' $1');
+    scene.innerHTML = "";
+    description.textContent = "Click objects to investigate the cabin and find clues.";
+    scene.style.backgroundImage = `url('${scenes[location].bg}')`;
+    scenes[location].hotspots.forEach(h => {
+      let div = document.createElement("div");
+      div.classList.add("hotspot");
+      div.id = h.id;
+      div.title = h.name;
+      div.addEventListener("click", () => {
+        description.textContent = h.description;
+        h.onClick();
+      });
+      scene.appendChild(div);
+    });
+    updateNavigationButtons();
+  }
+
+  function updateNavigationButtons() {
+    navLivingRoom.disabled = currentLocation === "livingRoom";
+    navBedroom.disabled = currentLocation === "bedroom";
+    navBasement.disabled = currentLocation === "basement";
+  }
+
+  // Inventory helpers
+  function addToInventory(itemName) {
+    if (!inventory.includes(itemName)) {
+      inventory.push(itemName);
+      renderInventory();
+      description.textContent = `You added "${itemName}" to your inventory.`;
+    } else {
+      description.textContent = `You already have "${itemName}".`;
+    }
+  }
+  function removeFromInventory(itemName) {
+    inventory = inventory.filter(i => i !== itemName);
+    renderInventory();
+  }
+  function hasItem(itemName) {
+    return inventory.includes(itemName);
+  }
+
+  function renderInventory() {
+    inventoryDiv.innerHTML = "";
+    inventory.forEach(item => {
+      const div = document.createElement("div");
+      div.classList.add("invItem");
+      div.textContent = item;
+      div.onclick = () => {
+        description.textContent = `You are holding "${item}". Click on something to use it.`;
+        selectedInventoryItem = item;
+      };
+      inventoryDiv.appendChild(div);
+    });
+  }
+
+  let selectedInventoryItem = null;
+
+  // Hotspot click functions
+
+  // Living Room
+  function bookshelfClick() {
+    if (!hasItem("Old Book")) {
+      addToInventory("Old Book");
+    } else {
+      description.textContent = "Just dusty old books here.";
+    }
+  }
+  function fireplaceClick() {
+    if (hasItem("Old Book") && !hasItem("Hidden Key")) {
+      addToInventory("Hidden Key");
+      description.textContent = "You found a small key behind a loose brick!";
+    } else {
+      description.textContent = "Cold ashes and soot.";
+    }
+  }
+  function rugClick() {
+    description.textContent = "You found nothing special under the rug but the floorboards look loose.";
+  }
+
+  // Bedroom
+  function bedClick() {
+    description.textContent = "The bed is covered in dust and cobwebs.";
+  }
+  function dresserClick() {
+    if (hasItem("Hidden Key")) {
+      if (!hasItem("Secret Map")) {
+        addToInventory("Secret Map");
+        description.textContent = "Using the key, you unlock the drawer and find a Secret Map!";
+      } else {
+        description.textContent = "The drawer is open and empty now.";
+      }
+    } else {
+      description.textContent = "The drawer is locked tight.";
+    }
+  }
+  function windowClick() {
+    description.textContent = "The cracked window lets in cold air and a view of the deep forest.";
+  }
+
+  // Basement
+  function chestClick() {
+    if (selectedInventoryItem === "Secret Map") {
+      if (!treasureFound) {
+        treasureFound = true;
+        description.textContent = "Using the Secret Map, you unlock the chest to find the Golden Treasure! You won!";
+        alert("Congratulations! You found your grandfather's secret golden treasure!");
+      } else {
+        description.textContent = "The chest is open, the treasure gleams inside.";
+      }
+    } else {
+      description.textContent = "The chest is locked. You need something to open it.";
+    }
+  }
+  function shelfClick() {
+    if (!hasItem("Rusty Crowbar")) {
+      addToInventory("Rusty Crowbar");
+      description.textContent = "You found a Rusty Crowbar among the jars.";
+    } else {
+      description.textContent = "Just old jars and tools.";
+    }
+  }
+  function crateClick() {
+    if (hasItem("Rusty Crowbar") && !hasItem("Basement Door Key")) {
+      addToInventory("Basement Door Key");
+      description.textContent = "Using the crowbar, you pry open a hidden compartment with a key inside!";
+    } else if (!hasItem("Rusty Crowbar")) {
+      description.textContent = "The crate is locked shut tight.";
+    } else {
+      description.textContent = "The crate is open and empty.";
+    }
+  }
+
+  // Navigation events
+  navLivingRoom.onclick = () => showScene("livingRoom");
+  navBedroom.onclick = () => showScene("bedroom");
+  navBasement.onclick = () => showScene("basement");
+
+  // Start the game
+  startBtn.onclick = () => {
+    homeScreen.style.display = "none";
+    gameScreen.style.display = "flex";
+    showScene("livingRoom");
+  };
+
+  // Use inventory items on hotspots
+  scene.addEventListener("click", e => {
+    if (!selectedInventoryItem) return;
+    const clicked = e.target;
+    if (!clicked.classList.contains("hotspot")) return;
+    
+    // Basement door locked logic
+    if (currentLocation === "livingRoom" && selectedInventoryItem === "Basement Door Key") {
+      description.textContent = "You unlock the basement door with the key. You can now explore the basement.";
+      navBasement.disabled = false;
+      removeFromInventory("Basement Door Key");
+      selectedInventoryItem = null;
+      return;
+    }
+
+    description.textContent = `Using "${selectedInventoryItem}" here has no effect.`;
+    selectedInventoryItem = null;
+  });
+
+  // Initially basement locked until key found
+  navBasement.disabled = true;
+
+</script>
+
+</body>
+</html>
