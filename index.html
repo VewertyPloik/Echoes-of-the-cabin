@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Echoes of the Cabin</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Georgia', serif;
+      background: black;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #navbar {
+      display: flex;
+      justify-content: space-around;
+      background-color: #333;
+      padding: 12px;
+    }
+    #navbar button {
+      padding: 10px 20px;
+      background-color: #555;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #scene {
+      flex-grow: 1;
+      position: relative;
+      background-size: cover;
+      background-position: center;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+    }
+    .hotspot {
+      position: absolute;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 0 4px 2px rgba(166,124,0,0);
+      transition: box-shadow 0.2s ease;
+      background: rgba(255,255,255,0.1);
+    }
+    .hotspot:hover {
+      box-shadow: 0 0 6px 4px rgba(166,124,0,0.8);
+      background: rgba(255,255,255,0.2);
+    }
+    #message {
+      padding: 12px;
+      background-color: #111;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar">
+    <button onclick="switchRoom('livingRoom')">Living Room</button>
+    <button onclick="switchRoom('bedroom')">Bedroom</button>
+    <button onclick="switchRoom('basement')">Basement</button>
+  </div>
+  <div id="scene"></div>
+  <div id="message">Welcome to Echoes of the Cabin</div>
+
+  <script>
+    const scenes = {
+      livingRoom: {
+        bg: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1050&q=80",
+        hotspots: [
+          { id: 'lr_bookshelf', x: '12%', y: '30%', w: '150px', h: '260px', msg: "Dusty books, unread for decades." },
+          { id: 'lr_fireplace', x: '70%', y: '60%', w: '180px', h: '150px', msg: "The fireplace is cold, but ashes remain." },
+          { id: 'lr_rug', x: '48%', y: '80%', w: '190px', h: '120px', msg: "A frayed rug covers something underneath." }
+        ]
+      },
+      bedroom: {
+        bg: "https://images.unsplash.com/photo-1477768663692-d2b59e017f42?auto=format&fit=crop&w=1050&q=80",
+        hotspots: [
+          { id: 'br_bed', x: '18%', y: '60%', w: '250px', h: '170px', msg: "The bed looks like someone just left it." },
+          { id: 'br_dresser', x: '70%', y: '44%', w: '170px', h: '200px', msg: "The dresser drawers creak when pulled." },
+          { id: 'br_window', x: '42%', y: '24%', w: '190px', h: '150px', msg: "Outside, the woods are eerily still." }
+        ]
+      },
+      basement: {
+        bg: "https://stepoffthebeatentrack.com/wp-content/uploads/2022/02/abandoned-cabin-basement.jpg",
+        hotspots: [
+          { id: 'bs_chest', x: '52%', y: '62%', w: '200px', h: '140px', msg: "An old chest sealed tight." },
+          { id: 'bs_shelf', x: '22%', y: '35%', w: '170px', h: '180px', msg: "Cobwebs cover forgotten tools." },
+          { id: 'bs_crate', x: '18%', y: '74%', w: '150px', h: '120px', msg: "The crate rattles when nudged." }
+        ]
+      }
+    };
+
+    function switchRoom(room) {
+      const scene = document.getElementById('scene');
+      const message = document.getElementById('message');
+      scene.innerHTML = '';
+      scene.style.backgroundImage = `url(${scenes[room].bg})`;
+      message.innerText = `You're now in the ${room.replace(/([A-Z])/g, ' $1').toLowerCase()}`;
+
+      scenes[room].hotspots.forEach(h => {
+        const hs = document.createElement('div');
+        hs.className = 'hotspot';
+        hs.style.top = h.y;
+        hs.style.left = h.x;
+        hs.style.width = h.w;
+        hs.style.height = h.h;
+        hs.onclick = () => message.innerText = h.msg;
+        scene.appendChild(hs);
+      });
+    }
+
+    switchRoom('livingRoom');
+  </script>
+</body>
+</html>
